@@ -16,6 +16,7 @@ class Program
         int numberOfTasks = 1000;
         var phoneBook = new ConcurrentDictionary<string, string>();
         var cancellationTokenSource = new System.Threading.CancellationTokenSource();
+        var semafore = new SemaphoreSlim(5, 5);
 
         var tasks = Enumerable.Range(0, numberOfTasks).Select(Print).ToList();
 
@@ -42,13 +43,22 @@ class Program
         {
             while (!cancellationTokenSource.Token.IsCancellationRequested)
             {
-                var results = phoneBook
+                semafore.Wait();
+                try
+                {
+                    var results = phoneBook
                         .Where(entry => entry.Value.Count(c => c == 'b') >= 2)
                         .ToList();
 
-                foreach (var entry in results)
+                    foreach (var entry in results)
+                    {
+                        Console.WriteLine($"Match found! Phone: {entry.Key}, Name: {entry.Value}");
+                    }
+
+                }
+                finally
                 {
-                    Console.WriteLine($"Match found! Phone: {entry.Key}, Name: {entry.Value}");
+                    semafore.Release();
                 }
                 await Task.Delay(500);
             }
